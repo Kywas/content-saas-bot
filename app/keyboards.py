@@ -10,10 +10,13 @@ def main_menu_keyboard() -> ReplyKeyboardMarkup:
     builder.button(text="🪝 Хуки")
     builder.button(text="📅 План на 7 дней")
     builder.button(text="✍️ Подпись")
+    builder.button(text="💡 Идеи")
+    builder.button(text="🎬 Reels")
+    builder.button(text="📲 Сторис")
     builder.button(text="🎯 Моя ниша")
     builder.button(text="⭐ Премиум")
     builder.button(text="📊 Статус")
-    builder.adjust(2, 2, 2, 1)
+    builder.adjust(2, 2, 2, 2, 2)
     return builder.as_markup(resize_keyboard=True)
 
 

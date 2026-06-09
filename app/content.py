@@ -14,6 +14,9 @@ class ContentType(StrEnum):
     HOOKS = "hooks"
     PLAN = "plan"
     CAPTION = "caption"
+    IDEAS = "ideas"
+    REELS = "reels"
+    STORIES = "stories"
 
 
 HOOK_TEMPLATES = [
@@ -337,6 +340,91 @@ HASHTAG_SUFFIXES = [
     "#блог #соцсети #продажи",
 ]
 
+IDEA_TEMPLATES = [
+    "Разбор главной ошибки новичков в {niche}",
+    "Мой путь в {niche}: с чего начинал и что понял",
+    "5 инструментов, без которых не работаю в {niche}",
+    "Ответы на 10 частых вопросов по {niche}",
+    "Мифы vs реальность в {niche}",
+    "Кейс клиента: проблема → решение → результат",
+    "Чек-лист для старта в {niche}",
+    "Что я перестал делать — и стало лучше",
+    "Тренды в {niche}, которые нельзя игнорировать",
+    "Закулисье: как проходит мой рабочий день",
+    "До/после: трансформация за месяц",
+    "Топ-3 совета себе 3 года назад",
+    "Сравнение: плохой и хороший подход",
+    "История провала и урок из него",
+    "Пост-опрос: что волнует аудиторию больше всего",
+    "Коллаборация с экспертом из смежной ниши",
+    "Разбор конкурента: что взять, что не копировать",
+    "Личное: почему выбрал {niche}",
+    "Мини-гайд за 5 шагов",
+    "Итоги месяца: цифры, инсайты, планы",
+]
+
+REELS_TEMPLATES = [
+    (
+        "🎬 <b>Сценарий Reels · {niche}</b>\n\n"
+        "<b>0–3 сек (хук):</b>\n"
+        "«{hook}»\n\n"
+        "<b>3–15 сек (суть):</b>\n"
+        "Покажи на примере: {step1}.\n"
+        "Текст на экране: «{insight}»\n\n"
+        "<b>15–25 сек (польза):</b>\n"
+        "Дай 2–3 быстрых пункта:\n"
+        "• {step2}\n"
+        "• {step3}\n\n"
+        "<b>25–30 сек (CTA):</b>\n"
+        "{cta}\n\n"
+        "💡 Сними вертикально, добавь субтитры."
+    ),
+    (
+        "🎬 <b>Сценарий Reels · формат «миф»</b>\n\n"
+        "<b>Хук:</b> «Думаешь, в {niche} главное — {myth}? Ошибаешься.»\n\n"
+        "<b>Кадр 2:</b> Покажи, почему это не работает.\n\n"
+        "<b>Кадр 3:</b> «На деле работает: {truth}»\n\n"
+        "<b>Финал:</b> {cta}\n\n"
+        "Музыка: трендовый звук, динамичный монтаж."
+    ),
+    (
+        "🎬 <b>Сценарий Reels · формат «3 совета»</b>\n\n"
+        "Текст на экране по очереди:\n"
+        "1️⃣ {step1}\n"
+        "2️⃣ {step2}\n"
+        "3️⃣ {step3}\n\n"
+        "Голос за кадром: «Если ты в {niche} — сохрани это.»\n\n"
+        "Финал: {cta}"
+    ),
+]
+
+STORIES_TEMPLATES = [
+    (
+        "📲 <b>Серия Stories · 5 слайдов · {niche}</b>\n\n"
+        "<b>Слайд 1:</b> Опрос — «Тебе знакома эта боль в {niche}?» Да / Нет\n\n"
+        "<b>Слайд 2:</b> «Большинство думает, что проблема в {myth}…»\n\n"
+        "<b>Слайд 3:</b> «На самом деле: {truth}»\n\n"
+        "<b>Слайд 4:</b> «Сделай сегодня: {step1}»\n\n"
+        "<b>Слайд 5:</b> Стикер «Напиши» + «Вопросы в директ 👇»"
+    ),
+    (
+        "📲 <b>Серия Stories · квиз · {niche}</b>\n\n"
+        "<b>Слайд 1:</b> «Мини-квиз для тех, кто в {niche}»\n\n"
+        "<b>Слайд 2:</b> Викторина — «Что важнее?» Вариант А / Вариант Б\n\n"
+        "<b>Слайд 3:</b> Правильный ответ + короткое объяснение\n\n"
+        "<b>Слайд 4:</b> «Совет дня: {step1}»\n\n"
+        "<b>Слайд 5:</b> «Сохрани в хайлайт · {niche}»"
+    ),
+    (
+        "📲 <b>Серия Stories · закулисье</b>\n\n"
+        "<b>Слайд 1:</b> Фото/видео процесса + «Так проходит мой день в {niche}»\n\n"
+        "<b>Слайд 2:</b> «Сейчас делаю: {step1}»\n\n"
+        "<b>Слайд 3:</b> «Совет: {insight}»\n\n"
+        "<b>Слайд 4:</b> Опрос — «Хотите больше такого?»\n\n"
+        "<b>Слайд 5:</b> CTA — «Напиши + в директ — пришлю чек-лист»"
+    ),
+]
+
 
 def _pick(items: list[str]) -> str:
     return random.choice(items)
@@ -418,6 +506,43 @@ def _generate_offline(content_type: ContentType, niche: str) -> str:
         )
         return f"✍️ Подпись для поста в нише «{niche}»:\n\n{body}\n\n{_hashtags(niche, pack)}"
 
+    if content_type == ContentType.IDEAS:
+        ideas = _pick_unique(
+            [t.format(niche=niche) if "{niche}" in t else t for t in IDEA_TEMPLATES]
+            + [t.format(niche=niche) if "{niche}" in t else t for t in pools["plan_tasks"][:10]],
+            10,
+        )
+        header = f"💡 10 идей для контента · «{niche}»"
+        if pack:
+            header += " · тематические"
+        return header + ":\n\n" + "\n".join(f"{i}. {idea}" for i, idea in enumerate(ideas, 1))
+
+    if content_type == ContentType.REELS:
+        hook = _format_hook(_pick(pools["hooks"]), niche)
+        template = _pick(REELS_TEMPLATES)
+        steps = _pick_unique(pools["steps"], 3)
+        return template.format(
+            niche=niche,
+            hook=hook,
+            myth=_pick(pools["myths"]),
+            truth=_pick(pools["truths"]),
+            insight=_pick(pools["insights"]),
+            step1=steps[0],
+            step2=steps[1],
+            step3=steps[2],
+            cta=_pick(CTAS),
+        )
+
+    if content_type == ContentType.STORIES:
+        template = _pick(STORIES_TEMPLATES)
+        return template.format(
+            niche=niche,
+            myth=_pick(pools["myths"]),
+            truth=_pick(pools["truths"]),
+            insight=_pick(pools["insights"]),
+            step1=_pick(pools["steps"]),
+        )
+
     hook = _format_hook(_pick(pools["hooks"]), niche)
     template = _pick(pools["posts"])
     steps = _pick_unique(pools["steps"], 4)
@@ -464,6 +589,18 @@ async def generate_content(
         ContentType.CAPTION: (
             f"Напиши подпись к посту в нише «{niche}» с хештегами. "
             f"Дополнительно: {extra or 'без уточнений'}."
+        ),
+        ContentType.IDEAS: (
+            f"Дай 10 идей для постов и контента в нише «{niche}». "
+            f"Каждая идея — конкретная тема, пронумерованный список."
+        ),
+        ContentType.REELS: (
+            f"Напиши сценарий Reels на 30 секунд для ниши «{niche}»: "
+            f"хук, основная часть, CTA. Покадрово."
+        ),
+        ContentType.STORIES: (
+            f"Напиши серию из 5 слайдов Stories для ниши «{niche}». "
+            f"С опросами и призывом к действию."
         ),
     }
 

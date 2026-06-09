@@ -38,18 +38,32 @@ class MenuAction(StrEnum):
     HOOKS = "🪝 Хуки"
     PLAN = "📅 План на 7 дней"
     CAPTION = "✍️ Подпись"
+    IDEAS = "💡 Идеи"
+    REELS = "🎬 Reels"
+    STORIES = "📲 Сторис"
     NICHE = "🎯 Моя ниша"
     PREMIUM = "⭐ Премиум"
     STATUS = "📊 Статус"
 
 
+GENERATE_ACTIONS = frozenset({
+    MenuAction.POST,
+    MenuAction.HOOKS,
+    MenuAction.PLAN,
+    MenuAction.CAPTION,
+    MenuAction.IDEAS,
+    MenuAction.REELS,
+    MenuAction.STORIES,
+})
+
+
 WELCOME_TEXT = (
     "👋 <b>Content Factory</b> — бот, который пишет контент за тебя.\n\n"
     "Что умею:\n"
-    "• готовые посты\n"
-    "• цепляющие хуки\n"
+    "• посты, хуки, подписи\n"
     "• план на 7 дней\n"
-    "• подписи с хештегами\n\n"
+    "• 10 идей для контента\n"
+    "• сценарии Reels и Stories\n\n"
     "Сначала укажи нишу — кнопка «🎯 Моя ниша».\n"
     "Бесплатно: {limit} генераций в день.\n"
     "Премиум: безлимит на 30 дней."
@@ -62,6 +76,9 @@ def _content_type_for_action(action: str) -> ContentType | None:
         MenuAction.HOOKS: ContentType.HOOKS,
         MenuAction.PLAN: ContentType.PLAN,
         MenuAction.CAPTION: ContentType.CAPTION,
+        MenuAction.IDEAS: ContentType.IDEAS,
+        MenuAction.REELS: ContentType.REELS,
+        MenuAction.STORIES: ContentType.STORIES,
     }
     return mapping.get(action)  # type: ignore[arg-type]
 
@@ -245,7 +262,7 @@ async def run_bot() -> None:
             "Теперь генерации без лимита."
         )
 
-    @dp.message(F.text.in_({MenuAction.POST, MenuAction.HOOKS, MenuAction.PLAN, MenuAction.CAPTION}))
+    @dp.message(F.text.in_(GENERATE_ACTIONS))
     async def generate(message: Message) -> None:
         if message.from_user is None or message.text is None:
             return
