@@ -6,6 +6,7 @@ from enum import StrEnum
 from openai import AsyncOpenAI
 
 from app.config import Settings
+from app.niche_templates import NichePack, _blend, detect_niche_pack
 
 
 class ContentType(StrEnum):
@@ -349,53 +350,88 @@ def _pick_unique(items: list[str], count: int) -> list[str]:
     return pool[:count]
 
 
-def _hashtags(niche: str) -> str:
+def _hashtags(niche: str, pack: NichePack | None) -> str:
     tag = niche.replace(" ", "").replace("-", "")
+    if pack and pack.hashtags:
+        return f"#{tag} {_pick(list(pack.hashtags))}"
     return f"#{tag} {_pick(HASHTAG_SUFFIXES)}"
 
 
+def _pools_for_niche(niche: str) -> dict[str, list[str]]:
+    pack = detect_niche_pack(niche)
+    hooks = _blend(list(HOOK_TEMPLATES), pack.hooks if pack else ())
+    if pack:
+        hooks = [h if "{niche}" in h else f"{h} ({niche})" for h in hooks]
+    return {
+        "pack": pack,
+        "hooks": hooks,
+        "steps": _blend(list(STEPS), pack.steps if pack else ()),
+        "myths": _blend(list(MYTHS), pack.myths if pack else ()),
+        "truths": _blend(list(TRUTHS), pack.truths if pack else ()),
+        "plan_tasks": _blend(list(PLAN_TASKS), pack.plan_tasks if pack else ()),
+        "insights": _blend(list(INSIGHTS), pack.insights if pack else ()),
+        "posts": list(POST_STRUCTURES) + list(pack.posts if pack else ()),
+    }
+
+
+def _format_hook(template: str, niche: str) -> str:
+    if "{niche}" in template:
+        return template.format(niche=niche)
+    return template
+
+
 def _generate_offline(content_type: ContentType, niche: str) -> str:
+    pools = _pools_for_niche(niche)
+    pack = pools["pack"]
+
     if content_type == ContentType.HOOKS:
-        hooks = _pick_unique(HOOK_TEMPLATES, 5)
-        lines = [h.format(niche=niche) for h in hooks]
-        return "🪝 5 хуков для твоего контента:\n\n" + "\n\n".join(
-            f"{i}. {h}" for i, h in enumerate(lines, 1)
-        )
+        hooks = _pick_unique(pools["hooks"], 5)
+        lines = [_format_hook(h, niche) for h in hooks]
+        header = "🪝 5 хуков для твоего контента"
+        if pack:
+            header += f" · {niche}"
+        return header + ":\n\n" + "\n\n".join(f"{i}. {h}" for i, h in enumerate(lines, 1))
 
     if content_type == ContentType.PLAN:
-        tasks = _pick_unique(PLAN_TASKS, 7)
-        lines = [f"День {i + 1}: {t.format(niche=niche)}" for i, t in enumerate(tasks)]
+        tasks = _pick_unique(pools["plan_tasks"], 7)
+        lines = []
+        for i, task in enumerate(tasks):
+            text = task.format(niche=niche) if "{niche}" in task else task
+            lines.append(f"День {i + 1}: {text}")
+        header = f"📅 Контент-план на 7 дней для ниши «{niche}»"
+        if pack:
+            header += " · тематический"
         return (
-            f"📅 Контент-план на 7 дней для ниши «{niche}»:\n\n"
+            header + ":\n\n"
             + "\n".join(lines)
             + "\n\n💡 Публикуй в одно время — так алгоритм быстрее запомнит тебя."
         )
 
     if content_type == ContentType.CAPTION:
-        hook = _pick(HOOK_TEMPLATES).format(niche=niche)
+        hook = _format_hook(_pick(pools["hooks"]), niche)
         template = _pick(CAPTION_TEMPLATES)
         body = template.format(
             hook=hook,
             niche=niche,
-            insight=_pick(INSIGHTS),
-            action=_pick(STEPS).lower(),
+            insight=_pick(pools["insights"]),
+            action=_pick(pools["steps"]).lower(),
         )
-        return f"✍️ Подпись для поста в нише «{niche}»:\n\n{body}\n\n{_hashtags(niche)}"
+        return f"✍️ Подпись для поста в нише «{niche}»:\n\n{body}\n\n{_hashtags(niche, pack)}"
 
-    hook = _pick(HOOK_TEMPLATES).format(niche=niche)
-    template = _pick(POST_STRUCTURES)
-    steps = _pick_unique(STEPS, 4)
+    hook = _format_hook(_pick(pools["hooks"]), niche)
+    template = _pick(pools["posts"])
+    steps = _pick_unique(pools["steps"], 4)
     return template.format(
         hook=hook,
         niche=niche,
-        myth=_pick(MYTHS),
-        truth=_pick(TRUTHS),
+        myth=_pick(pools["myths"]),
+        truth=_pick(pools["truths"]),
         step1=steps[0],
-        step2=steps[1] if len(steps) > 1 else _pick(STEPS),
-        step3=steps[2] if len(steps) > 2 else _pick(STEPS),
-        step4=steps[3] if len(steps) > 3 else _pick(STEPS),
-        dont=_pick(MYTHS),
-        do=_pick(TRUTHS),
+        step2=steps[1] if len(steps) > 1 else _pick(pools["steps"]),
+        step3=steps[2] if len(steps) > 2 else _pick(pools["steps"]),
+        step4=steps[3] if len(steps) > 3 else _pick(pools["steps"]),
+        dont=_pick(pools["myths"]),
+        do=_pick(pools["truths"]),
         reason=_pick(REASONS),
         cta=_pick(CTAS),
     )
