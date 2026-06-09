@@ -1,0 +1,33 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          script: |
+            set -e
+            cd /opt/content-saas-bot
+            git pull origin main
+            source .venv/bin/activate
+            pip install -r requirements.txt
+            python -m compileall app main.py scripts
+            PYTHONPATH=. python scripts/check_env.py
+            cp deploy/contentbot.service /etc/systemd/system/contentbot.service
+            systemctl daemon-reload
+            systemctl enable contentbot.service
+            systemctl restart contentbot
+            sleep 5
+            systemctl is-active --quiet contentbot
+            systemctl status contentbot --no-pager
+            journalctl -u contentbot -n 40 --no-pager
